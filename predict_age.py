@@ -50,7 +50,7 @@ def get_faces(frame, confidence_threshold=0.5):
             start_x, start_y, end_x, end_y = box.astype(np.int)
             # widen the box a little
             start_x, start_y, end_x, end_y = start_x - \
-                10, start_y - 10, end_x + 10, end_y + 10
+                                             10, start_y - 10, end_x + 10, end_y + 10
             start_x = 0 if start_x < 0 else start_x
             start_y = 0 if start_y < 0 else start_y
             end_x = 0 if end_x < 0 else end_x
@@ -73,14 +73,15 @@ def display_img(title, img):
 def get_optimal_font_scale(text, width):
     """Determine the optimal font scale based on the hosting frame width"""
     for scale in reversed(range(0, 60, 1)):
-        textSize = cv2.getTextSize(text, fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=scale/10, thickness=1)
+        textSize = cv2.getTextSize(text, fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=scale / 10, thickness=1)
         new_width = textSize[0][0]
         if (new_width <= width):
-            return scale/10
+            return scale / 10
     return 1
 
+
 # from: https://stackoverflow.com/questions/44650888/resize-an-image-without-distortion-opencv
-def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
+def image_resize(image, width=None, height=None, inter=cv2.INTER_AREA):
     # initialize the dimensions of the image to be resized and
     # grab the image size
     dim = None
@@ -102,7 +103,7 @@ def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
         r = width / float(w)
         dim = (width, int(h * r))
     # resize the image
-    return cv2.resize(image, dim, interpolation = inter)
+    return cv2.resize(image, dim, interpolation=inter)
 
 
 def predict_age(input_path: str):
@@ -124,15 +125,15 @@ def predict_age(input_path: str):
         # Predict Age
         age_net.setInput(blob)
         age_preds = age_net.forward()
-        print("="*30, f"Face {i+1} Prediction Probabilities", "="*30)
+        print("=" * 30, f"Face {i + 1} Prediction Probabilities", "=" * 30)
         for i in range(age_preds[0].shape[0]):
-            print(f"{AGE_INTERVALS[i]}: {age_preds[0, i]*100:.2f}%")
+            print(f"{AGE_INTERVALS[i]}: {age_preds[0, i] * 100:.2f}%")
         i = age_preds[0].argmax()
         age = AGE_INTERVALS[i]
         age_confidence_score = age_preds[0][i]
         print(age, age_confidence_score)
         # Draw the box
-        label = f"Age:{age} - {age_confidence_score*100:.2f}%"
+        label = f"Age:{age} - {age_confidence_score * 100:.2f}%"
         print(label)
         # get the position where to put the text
         yPos = start_y - 15
@@ -152,5 +153,6 @@ def predict_age(input_path: str):
 if __name__ == '__main__':
     # Parsing command line arguments entered by user
     import sys
+
     image_path = sys.argv[1]
     predict_age(image_path)
