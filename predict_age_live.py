@@ -1,6 +1,4 @@
 import cv2
-import os
-import filetype
 import numpy as np
 
 # The model architecture
@@ -28,6 +26,8 @@ frame_height = 720
 face_net = cv2.dnn.readNetFromCaffe(FACE_PROTO, FACE_MODEL)
 # Load age prediction model
 age_net = cv2.dnn.readNetFromCaffe(AGE_MODEL, AGE_PROTO)
+
+first_x, first_y, second_x, second_y = -1, -1, -1, -1
 
 
 def get_faces(frame, confidence_threshold=0.5):
@@ -95,12 +95,47 @@ def image_resize(image, width=None, height=None, inter=cv2.INTER_AREA):
     return cv2.resize(image, dim, interpolation=inter)
 
 
+def save_border(event, x, y, flags, param):
+    """
+    Save the position of the mouse click when the mouse button released, if the event was not button up nothing happened.
+    :param event: The event happened
+    :param x: X position of the mouse click.
+    :param y: Y position of the mouse click.
+    :param flags: One of the cv::MouseEventFlags constants.
+    :param param: The optional parameter.
+    """
+    global first_x, first_y, second_x, second_y
+    if event != cv2.EVENT_LBUTTONUP:
+        return
+    print("in the save border function")
+    if first_y == -1:
+        first_x = x
+        first_y = y
+    else:
+        second_x = x
+        second_y = y
+        cv2.setMouseCallback('Set border', lambda *args: None)
+
+
+def set_border_in_image(cap: cv2.VideoCapture):
+    """
+    A function to create the border in the image.
+    :param cap: The video capture object.
+    """
+    _, img = cap.read()
+    frame = img.copy()
+    if frame.shape[1] > frame_width:
+        frame = image_resize(frame, width=frame_width)
+    cv2.imshow('Set border', frame)
+    cv2.setMouseCallback('Set border', save_border)
+
+
 def predict_age():
     """Predict the age of the faces showing in the image"""
 
     # create a new cam object
     cap = cv2.VideoCapture(0)
-
+    set_border_in_image(cap)
     while True:
         _, img = cap.read()
         # Take a copy of the initial image and resize it
@@ -131,11 +166,15 @@ def predict_age():
             yPos = start_y - 15
             while yPos < 15:
                 yPos += 15
+
+            if first_y != -1 and second_x != -1:
+                cv2.line(frame, (first_x, first_y), (second_x, second_y), color=(255, 0, 0), thickness=2)
             # write the text into the frame
             cv2.putText(frame, label, (start_x, yPos),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), thickness=2)
             # draw the rectangle around the face
             cv2.rectangle(frame, (start_x, start_y), (end_x, end_y), color=(255, 0, 0), thickness=2)
+
         # Display processed image
         cv2.imshow('Age Estimator', frame)
         if cv2.waitKey(1) == ord("q"):
