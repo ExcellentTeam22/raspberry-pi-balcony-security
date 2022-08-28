@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import Line
+from playsound import playsound
 
 # The model architecture
 # download from: https://drive.google.com/open?id=1kiusFljZc9QfcIYdU2s7xrtWHTraHwmW
@@ -27,7 +29,8 @@ face_net = cv2.dnn.readNetFromCaffe(FACE_PROTO, FACE_MODEL)
 # Load age prediction model
 age_net = cv2.dnn.readNetFromCaffe(AGE_MODEL, AGE_PROTO)
 
-first_x, first_y, second_x, second_y = -1, -1, -1, -1
+start_border = Line.Point(-1, -1)
+end_border = Line.Point(-1, -1)
 
 
 def get_faces(frame, confidence_threshold=0.5):
@@ -104,16 +107,16 @@ def save_border(event, x, y, flags, param):
     :param flags: One of the cv::MouseEventFlags constants.
     :param param: The optional parameter.
     """
-    global first_x, first_y, second_x, second_y
+    global start_border, end_border
     if event != cv2.EVENT_LBUTTONUP:
         return
     print("in the save border function")
-    if first_y == -1:
-        first_x = x
-        first_y = y
+    if start_border.x == -1:
+        start_border.set_x(x)
+        start_border.set_y(y)
     else:
-        second_x = x
-        second_y = y
+        end_border.set_x(x)
+        end_border.set_y(y)
         cv2.setMouseCallback('Set border', lambda *args: None)
 
 
@@ -128,6 +131,20 @@ def set_border_in_image(cap: cv2.VideoCapture):
         frame = image_resize(frame, width=frame_width)
     cv2.imshow('Set border', frame)
     cv2.setMouseCallback('Set border', save_border)
+
+
+def check_intersection(line_start: Line.Point,
+                       line_end: Line.Point,
+                       rectangle_top_left: Line.Point,
+                       rectangle_bottom_right: Line.Point):
+    intersection_point = Line.line_line_intersection(line_start, line_end, rectangle_top_left, rectangle_bottom_right)
+    if intersection_point.get_x() == Line.FLT_MAX and intersection_point.get_y() == Line.FLT_MAX:
+        return
+    else:
+        print(line_start, "  ", line_end, "  ", rectangle_bottom_right, "  ", rectangle_top_left)
+        print(intersection_point)
+        # need to edit this line to make sound
+        playsound("C:\\Users\\dan52\\PycharmProjects\\Raspberry_pi\\mixkit-sci-fi-ship-alert-768.wav")
 
 
 def predict_age():
@@ -167,8 +184,13 @@ def predict_age():
             while yPos < 15:
                 yPos += 15
 
-            if first_y != -1 and second_x != -1:
-                cv2.line(frame, (first_x, first_y), (second_x, second_y), color=(255, 0, 0), thickness=2)
+            if start_border.get_y() != -1 and end_border.get_y() != -1:
+                cv2.line(frame,
+                         (start_border.get_x(), start_border.get_y()),
+                         (end_border.get_x(), end_border.get_y())
+                         , color=(255, 0, 0),
+                         thickness=2)
+                check_intersection(start_border, end_border, Line.Point(start_x, start_y), Line.Point(end_x, end_y))
             # write the text into the frame
             cv2.putText(frame, label, (start_x, yPos),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), thickness=2)
