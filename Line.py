@@ -40,17 +40,31 @@ class Point:
 
 def line_line_intersection(line_start: Point,
                            line_end: Point,
-                           rectangle_top_left: Point,
-                           rectangle_bottom_right: Point):
+                           rectangle_point_a: Point,
+                           rectangle_point_b: Point) -> Point:
+    """
+    A function to check that the intersection point is within the range of points.
+    code taken from:
+    https://www.geeksforgeeks.org/program-for-point-of-intersection-of-two-lines/
+    :param line_start: The line start point.
+    :param line_end: The line end point.
+    :param rectangle_point_a: a point of the rectangle edge.
+    :param rectangle_point_b: b point of the rectangle edge.
+    :return: Intersection point if the intersection within the range of points, (FLT_MAX, FLT_MAX) else.
+    """
+    left_point, right_point = rectangle_point_a, rectangle_point_b
+    if rectangle_point_a.get_x() > rectangle_point_b.get_x():
+        left_point, right_point = rectangle_point_b, rectangle_point_a
+
     # Line AB represented as a1x + b1y = c1
     a1 = line_end.get_y() - line_start.get_y()
     b1 = line_start.get_x() - line_end.get_x()
     c1 = a1 * line_start.get_x() + b1 * line_start.get_y()
 
     # Line CD represented as a2x + b2y = c2
-    a2 = rectangle_bottom_right.get_y() - rectangle_top_left.get_y()
-    b2 = rectangle_top_left.get_x() - rectangle_bottom_right.get_x()
-    c2 = a2 * rectangle_top_left.get_x() + b2 * rectangle_top_left.get_y()
+    a2 = rectangle_point_b.get_y() - rectangle_point_a.get_y()
+    b2 = rectangle_point_a.get_x() - rectangle_point_b.get_x()
+    c2 = a2 * rectangle_point_a.get_x() + b2 * rectangle_point_a.get_y()
 
     determinant = a1 * b2 - a2 * b1
 
@@ -61,7 +75,6 @@ def line_line_intersection(line_start: Point,
     else:
         x = (b2 * c1 - b1 * c2) / determinant
         y = (a1 * c2 - a2 * c1) / determinant
-        if x < line_start.get_x() or x > line_end.get_x():
-            if y < line_start.get_y() or y > line_end.get_y():
-                return Point(FLT_MAX, FLT_MAX)
+        if x < left_point.get_x() or x > right_point.get_x():
+            return Point(FLT_MAX, FLT_MAX)
         return Point(x, y)

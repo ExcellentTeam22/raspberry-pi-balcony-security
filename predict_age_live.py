@@ -133,18 +133,48 @@ def set_border_in_image(cap: cv2.VideoCapture):
     cv2.setMouseCallback('Set border', save_border)
 
 
+def add_intersection(intersection_list: list,
+                     line_start: Line.Point,
+                     line_end: Line.Point,
+                     rectangle_line_a: Line.Point,
+                     rectangle_line_b: Line.Point):
+    """
+    Function to build the intersection list. add intersection points to the list.
+    :param intersection_list: The list of intersection point.
+    :param line_start: The line start point.
+    :param line_end: The line end point.
+    :param rectangle_line_a: a point of the rectangle edge.
+    :param rectangle_line_b: b point of the rectangle edge.
+    """
+    intersection = Line.line_line_intersection(line_start, line_end, rectangle_line_a, rectangle_line_b)
+    intersection_list.append(intersection)
+
+
 def check_intersection(line_start: Line.Point,
                        line_end: Line.Point,
-                       rectangle_top_left: Line.Point,
-                       rectangle_bottom_right: Line.Point):
-    intersection_point = Line.line_line_intersection(line_start, line_end, rectangle_top_left, rectangle_bottom_right)
-    if intersection_point.get_x() == Line.FLT_MAX and intersection_point.get_y() == Line.FLT_MAX:
-        return
-    else:
-        print(line_start, "  ", line_end, "  ", rectangle_bottom_right, "  ", rectangle_top_left)
-        print(intersection_point)
-        # need to edit this line to make sound
-        playsound("C:\\Users\\dan52\\PycharmProjects\\Raspberry_pi\\mixkit-sci-fi-ship-alert-768.wav")
+                       rectangle_bottom_left: Line.Point,
+                       rectangle_top_right: Line.Point):
+    """
+    Function to check the intersection between the face and the border line the user set.
+    In case of intersection sound alarm.
+    :param line_start: The line start point.
+    :param line_end: The line end point.
+    :param rectangle_bottom_left: Bottom left point of the rectangle.
+    :param rectangle_top_right: Top right point of the rectangle.
+    """
+    # create the last 2 point of the rectangle.
+    rectangle_bottom_right = Line.Point(rectangle_top_right.get_x(), rectangle_bottom_left.get_y())
+    rectangle_top_left = Line.Point(rectangle_bottom_left.get_x(), rectangle_top_right.get_y())
+
+    # creation of the intersection list.
+    intersection_list = []
+    add_intersection(intersection_list, line_start, line_end, rectangle_top_left, rectangle_top_right)
+    add_intersection(intersection_list, line_start, line_end, rectangle_bottom_left, rectangle_bottom_right)
+
+    # play sound if there is intersection.
+    for intersection in intersection_list:
+        if intersection.get_y() != Line.FLT_MAX and intersection.get_x() != Line.FLT_MAX:
+            playsound("C:\\Users\\dan52\\PycharmProjects\\Raspberry_pi\\mixkit-sci-fi-ship-alert-768.wav")
 
 
 def predict_age():
@@ -170,15 +200,20 @@ def predict_age():
             # Predict Age
             age_net.setInput(blob)
             age_preds = age_net.forward()
-            print("=" * 30, f"Face {i + 1} Prediction Probabilities", "=" * 30)
-            for i in range(age_preds[0].shape[0]):
-                print(f"{AGE_INTERVALS[i]}: {age_preds[0, i] * 100:.2f}%")
+
+            # print("=" * 30, f"Face {i + 1} Prediction Probabilities", "=" * 30)
+            # for i in range(age_preds[0].shape[0]):
+            #     print(f"{AGE_INTERVALS[i]}: {age_preds[0, i] * 100:.2f}%")
+
             i = age_preds[0].argmax()
             age = AGE_INTERVALS[i]
             age_confidence_score = age_preds[0][i]
             # Draw the box
             label = f"Age:{age} - {age_confidence_score * 100:.2f}%"
-            print(label)
+
+            # the age predicted
+            # print(label)
+
             # get the position where to put the text
             yPos = start_y - 15
             while yPos < 15:
@@ -190,6 +225,7 @@ def predict_age():
                          (end_border.get_x(), end_border.get_y())
                          , color=(255, 0, 0),
                          thickness=2)
+
                 check_intersection(start_border, end_border, Line.Point(start_x, start_y), Line.Point(end_x, end_y))
             # write the text into the frame
             cv2.putText(frame, label, (start_x, yPos),
@@ -201,8 +237,6 @@ def predict_age():
         cv2.imshow('Age Estimator', frame)
         if cv2.waitKey(1) == ord("q"):
             break
-        # save the image if you want
-        # cv2.imwrite("predicted_age.jpg", frame)
     cv2.destroyAllWindows()
 
 
